@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="ms" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DATA PERANTI SEWAAN SEKOLAH-SEKOLAH DAERAH KUANTAN</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- PapaParse (CSV Parser) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom Scrollbar for premium feel */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        /* Custom animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+    </style>
+    
+    <script>
+        // Configure Tailwind theme colors to match professional KPM/Corporate identity
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            200: '#bae0fd',
+                            300: '#7cc8fd',
+                            400: '#36adfa',
+                            500: '#0c91eb',
+                            600: '#0073ca',
+                            700: '#015ca3',
+                            800: '#064f86',
+                            900: '#0b426f',
+                            950: '#072a4a',
+                        },
+                        accent: {
+                            teal: '#14b8a6',
+                            amber: '#f59e0b',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-full flex flex-col text-slate-800">
+
+    <!-- Top Navigation / Banner -->
+    <header class="bg-gradient-to-r from-brand-900 to-brand-700 text-white shadow-lg shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center space-x-4">
+                    <div class="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/20 shadow-inner">
+                        <i class="fa-solid fa-laptop-file text-3xl text-brand-200"></i>
+                    </div>
+                    <div>
+                        <span class="text-xs font-semibold uppercase tracking-widest text-brand-200">KEMENTERIAN PENDIDIKAN MALAYSIA</span>
+                        <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight">DATA PERANTI SEWAAN SEKOLAH-SEKOLAH DAERAH KUANTAN</h1>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="bg-white/10 px-4 py-2 rounded-xl text-xs flex items-center space-x-2 border border-white/10">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span class="font-medium text-brand-100" id="sync-status">Sistem Menyambung...</span>
+                    </div>
+                    <button onclick="reloadData()" class="bg-white hover:bg-brand-50 text-brand-800 font-semibold px-4 py-2 rounded-xl text-xs transition-all duration-200 flex items-center space-x-1 shadow-md hover:shadow-lg active:scale-95">
+                        <i id="refresh-icon" class="fa-solid fa-arrows-rotate mr-1"></i> Muat Semula Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 overflow-y-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+            <!-- Data Source URL Settings (Collapsible) -->
+            <div id="url-config-panel" class="bg-white border border-slate-200 rounded-2xl shadow-sm p-4 hidden transition-all duration-300">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-link text-brand-600"></i> Integrasi Google Sheets (CSV)
+                    </h3>
+                    <button onclick="toggleUrlConfig()" class="text-slate-400 hover:text-slate-600 text-xs">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="sheets-url-input" class="flex-1 px-3 py-2 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vTGSHnGNYYn5J0uu-15gJ5v2CBajoEU3DBf_ocwdtdZFpvIJbLUUzVmwfPLnNcExVErnb1QMAXD_Arf/pub?output=csv" placeholder="Masukkan URL Terbitan CSV Google Sheets">
+                    <button onclick="updateDataSourceUrl()" class="bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 rounded-xl text-xs font-semibold transition-all">Simpan & Muat</button>
+                </div>
+            </div>
+
+            <!-- Interactive Filters Section -->
+            <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 100ms;">
+                <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-sliders text-brand-600 text-lg"></i>
+                        <h2 class="text-base font-bold text-slate-800">Penapis Data (Filters)</h2>
+                    </div>
+                    <button onclick="resetFilters()" class="text-xs font-medium text-brand-600 hover:text-brand-800 transition-all flex items-center gap-1 py-1 px-3 hover:bg-brand-50 rounded-lg">
+                        <i class="fa-solid fa-filter-circle-xmark"></i> Padam Semua Penapis
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <!-- Filter 1: Nama Sekolah -->
+                        <div class="space-y-1.5">
+                            <label for="filter-school" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Nama Sekolah</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-school text-xs"></i>
+                                </span>
+                                <select id="filter-school" onchange="applyFilters()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="">Semua Sekolah</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Filter 2: PDT -->
+                        <div class="space-y-1.5">
+                            <label for="filter-pdt" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Peranti PDT (Pentadbiran)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-desktop text-xs"></i>
+                                </span>
+                                <select id="filter-pdt" onchange="applyFilters()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="">Semua Nilai PDT</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Filter 3: PDP -->
+                        <div class="space-y-1.5">
+                            <label for="filter-pdp" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Peranti PDP (Pengajaran)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-tablet-screen-button text-xs"></i>
+                                </span>
+                                <select id="filter-pdp" onchange="applyFilters()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="">Semua Nilai PDP</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Filter 4: Peranti Guru -->
+                        <div class="space-y-1.5">
+                            <label for="filter-guru" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Peranti Guru</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                    <i class="fa-solid fa-chalkboard-user text-xs"></i>
+                                </span>
+                                <select id="filter-guru" onchange="applyFilters()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all appearance-none cursor-pointer">
+                                    <option value="">Semua Nilai Guru</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Scorecards Section -->
+            <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 animate-fade-in" style="animation-delay: 200ms;">
+                <!-- Total Schools -->
+                <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+                    <div class="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-10 group-hover:scale-110 transition-transform duration-300 text-brand-950">
+                        <i class="fa-solid fa-school text-6xl"></i>
+                    </div>
+                    <span class="block text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Jumlah Sekolah</span>
+                    <span id="scorecard-schools" class="block text-xl sm:text-3xl font-extrabold text-slate-800 mt-2">0</span>
+                    <span class="block text-[10px] text-brand-600 font-medium mt-1"><i class="fa-solid fa-info-circle mr-1"></i>Dalam daerah</span>
+                </div>
+
+                <!-- Total PDT -->
+                <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+                    <div class="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-10 group-hover:scale-110 transition-transform duration-300 text-brand-950">
+                        <i class="fa-solid fa-desktop text-6xl"></i>
+                    </div>
+                    <span class="block text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Peranti PDT</span>
+                    <span id="scorecard-pdt" class="block text-xl sm:text-3xl font-extrabold text-slate-800 mt-2">0</span>
+                    <span class="block text-[10px] text-teal-600 font-medium mt-1"><i class="fa-solid fa-circle-check mr-1"></i>Unit Pentadbiran</span>
+                </div>
+
+                <!-- Total PDP -->
+                <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+                    <div class="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-10 group-hover:scale-110 transition-transform duration-300 text-brand-950">
+                        <i class="fa-solid fa-tablet-screen-button text-6xl"></i>
+                    </div>
+                    <span class="block text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Peranti PDP</span>
+                    <span id="scorecard-pdp" class="block text-xl sm:text-3xl font-extrabold text-slate-800 mt-2">0</span>
+                    <span class="block text-[10px] text-emerald-600 font-medium mt-1"><i class="fa-solid fa-circle-check mr-1"></i>Pembelajaran</span>
+                </div>
+
+                <!-- Total Peranti Guru -->
+                <div class="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+                    <div class="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-10 group-hover:scale-110 transition-transform duration-300 text-brand-950">
+                        <i class="fa-solid fa-chalkboard-user text-6xl"></i>
+                    </div>
+                    <span class="block text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Peranti Guru</span>
+                    <span id="scorecard-guru" class="block text-xl sm:text-3xl font-extrabold text-slate-800 mt-2">0</span>
+                    <span class="block text-[10px] text-indigo-600 font-medium mt-1"><i class="fa-solid fa-user-tie mr-1"></i>Tenaga Pengajar</span>
+                </div>
+
+                <!-- F1 Scorecard -->
+                <div class="bg-gradient-to-br from-brand-800 to-brand-950 text-white p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 relative overflow-hidden group">
+                    <div class="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-15 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-tags text-6xl"></i>
+                    </div>
+                    <span class="block text-[10px] sm:text-xs font-semibold text-brand-200 uppercase tracking-wider">FASA 1 (F1)</span>
+                    <span id="scorecard-f1" class="block text-xl sm:text-3xl font-extrabold text-white mt-2">0</span>
+                    <span id="scorecard-f1-desc" class="block text-[9px] text-brand-300 font-medium mt-1 leading-tight truncate">Mengira Status/Fasa 1</span>
+                </div>
+
+                <!-- F2 Scorecard -->
+                <div class="bg-gradient-to-br from-brand-700 to-brand-900 text-white p-5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 relative overflow-hidden group">
+                    <div class="absolute right-0 bottom-0 translate-x-3 translate-y-3 opacity-15 group-hover:scale-110 transition-transform duration-300">
+                        <i class="fa-solid fa-tags text-6xl"></i>
+                    </div>
+                    <span class="block text-[10px] sm:text-xs font-semibold text-brand-200 uppercase tracking-wider">FASA 2 (F2)</span>
+                    <span id="scorecard-f2" class="block text-xl sm:text-3xl font-extrabold text-white mt-2">0</span>
+                    <span id="scorecard-f2-desc" class="block text-[9px] text-brand-300 font-medium mt-1 leading-tight truncate">Mengira Status/Fasa 2</span>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in" style="animation-delay: 300ms;">
+                <!-- Chart 1: Peranti Stacked by Grade -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 lg:col-span-2">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-bar text-brand-600"></i> Agihan Peranti Mengikut Gred Sekolah
+                        </h3>
+                    </div>
+                    <div class="relative h-64 sm:h-80">
+                        <canvas id="chart-gred"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Status Breakdown -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-brand-600"></i> Status Pelaksanaan
+                        </h3>
+                    </div>
+                    <div class="relative h-64 sm:h-80 flex items-center justify-center">
+                        <canvas id="chart-status"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Interactive Data Table Card -->
+            <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 400ms;">
+                <!-- Header Actions -->
+                <div class="border-b border-slate-100 bg-slate-50/50 px-6 py-4 flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-table-list text-brand-600"></i> Senarai Sekolah & Peranti
+                        </h2>
+                        <span id="table-row-count" class="bg-brand-50 text-brand-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-brand-100 max-w-fit">0 Rekod Ditemui</span>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                        <!-- Search Box -->
+                        <div class="relative flex-1 sm:w-64">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                            </span>
+                            <input type="text" id="table-search" oninput="handleSearch()" class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white transition-all" placeholder="Cari kod, nama, status...">
+                        </div>
+                        <!-- Download Button -->
+                        <button onclick="exportCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-md active:scale-95">
+                            <i class="fa-solid fa-file-excel"></i> Eksport Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Table Container -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50/50 border-b border-slate-100 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                                <th class="py-3 px-6 cursor-pointer hover:bg-slate-100/50 select-none" onclick="sortData('KOD SEKOLAH')">Kod Sekolah <span id="sort-icon-KOD" class="ml-1 text-[10px] text-slate-400"><i class="fa-solid fa-sort"></i></span></th>
+                                <th class="py-3 px-6 cursor-pointer hover:bg-slate-100/50 select-none" onclick="sortData('NAMA SEKOLAH')">Nama Sekolah <span id="sort-icon-NAMA" class="ml-1 text-[10px] text-slate-400"><i class="fa-solid fa-sort"></i></span></th>
+                                <th class="py-3 px-4 text-center cursor-pointer hover:bg-slate-100/50 select-none" onclick="sortData('PDT')">PDT <span id="sort-icon-PDT" class="ml-1 text-[10px] text-slate-400"><i class="fa-solid fa-sort"></i></span></th>
+                                <th class="py-3 px-4 text-center cursor-pointer hover:bg-slate-100/50 select-none" onclick="sortData('PDP')">PDP <span id="sort-icon-PDP" class="ml-1 text-[10px] text-slate-400"><i class="fa-solid fa-sort"></i></span></th>
+                                <th class="py-3 px-4 text-center cursor-pointer hover:bg-slate-100/50 select-none" onclick="sortData('PERANTI GURU')">Guru <span id="sort-icon-GURU" class="ml-1 text-[10px] text-slate-400"><i class="fa-solid fa-sort"></i></span></th>
+                                <th class="py-3 px-4 text-center cursor-pointer hover:bg-slate-100/50 select-none" onclick="sortData('STATUS')">Status <span id="sort-icon-STATUS" class="ml-1 text-[10px] text-slate-400"><i class="fa-solid fa-sort"></i></span></th>
+                                <th class="py-3 px-6 text-center">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-100 text-sm">
+                            <tr>
+                                <td colspan="7" class="py-12 text-center text-slate-400">
+                                    <div class="flex flex-col items-center justify-center space-y-2">
+                                        <div class="animate-spin rounded-full h-8 w-8 border-4 border-brand-500 border-t-transparent"></div>
+                                        <p class="text-sm font-medium">Memuatkan data dari pangkalan data...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Footer -->
+                <div class="border-t border-slate-100 bg-slate-50/50 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center space-x-2 text-xs sm:text-sm text-slate-500">
+                        <span>Papar</span>
+                        <select id="table-page-size" onchange="changePageSize()" class="bg-white border border-slate-300 rounded-lg py-1 px-2.5 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <option value="10">10</option>
+                            <option value="25" selected>25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                        <span>rekod setiap halaman</span>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2" id="table-pagination">
+                        <!-- Buttons injected by JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Diagnostik & Column Custom Mapping Panel -->
+            <section class="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 animate-fade-in" style="animation-delay: 500ms;">
+                <button onclick="toggleDiagnostics()" class="w-full flex items-center justify-between text-left focus:outline-none">
+                    <div class="flex items-center space-x-2 text-slate-700">
+                        <i class="fa-solid fa-bug text-amber-500"></i>
+                        <h3 class="text-sm font-bold">Diagnostik Data & Pemetaan Kolum</h3>
+                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Tetapan Lanjutan</span>
+                    </div>
+                    <i id="diag-chevron" class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-200"></i>
+                </button>
+                
+                <div id="diagnostics-content" class="mt-4 hidden space-y-4 border-t border-slate-100 pt-4 text-xs">
+                    <p class="text-slate-500">Jika fail Google Sheets anda dikemaskini atau mempunyai nama kolum yang berbeza, anda boleh menetapkan semula kolum rujukan di bawah:</p>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <div class="space-y-1">
+                            <label class="font-semibold text-slate-600 block">KOD SEKOLAH</label>
+                            <select id="map-kod" class="w-full p-1.5 border border-slate-300 rounded-lg bg-white"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-slate-600 block">NAMA SEKOLAH</label>
+                            <select id="map-nama" class="w-full p-1.5 border border-slate-300 rounded-lg bg-white"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-slate-600 block">PDT</label>
+                            <select id="map-pdt" class="w-full p-1.5 border border-slate-300 rounded-lg bg-white"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-slate-600 block">PDP</label>
+                            <select id="map-pdp" class="w-full p-1.5 border border-slate-300 rounded-lg bg-white"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-slate-600 block">PERANTI GURU</label>
+                            <select id="map-guru" class="w-full p-1.5 border border-slate-300 rounded-lg bg-white"></select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="font-semibold text-slate-600 block">STATUS</label>
+                            <select id="map-status" class="w-full p-1.5 border border-slate-300 rounded-lg bg-white"></select>
+                        </div>
+                        <div class="space-y-1 col-span-2">
+                            <label class="font-semibold text-slate-600 block">Suaikan URL Google Sheets</label>
+                            <button onclick="toggleUrlConfig()" class="w-full py-1.5 px-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-semibold transition-all">Tunjuk/Sembunyi Konfigurasi URL</button>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2">
+                        <button onclick="applyManualMapping()" class="bg-brand-600 hover:bg-brand-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition-all">Simpan Pemetaan Baru</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Drawer Slide-over / Modal for Details -->
+    <div id="school-detail-drawer" class="fixed inset-0 z-50 overflow-hidden hidden" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
+        <!-- Background backdrop -->
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" onclick="closeDetailDrawer()"></div>
+        
+        <div class="absolute inset-y-0 right-0 max-w-full pl-10 flex sm:pl-16">
+            <div class="w-screen max-w-md transform transition-all duration-300 ease-in-out translate-x-full" id="drawer-panel">
+                <div class="h-full flex flex-col bg-white shadow-2xl overflow-y-scroll">
+                    <!-- Drawer Header -->
+                    <div class="bg-gradient-to-r from-brand-900 to-brand-800 px-6 py-6 text-white relative">
+                        <button onclick="closeDetailDrawer()" class="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-all">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                        <span id="detail-kod-badge" class="bg-brand-600/60 text-brand-100 text-xs font-bold px-2.5 py-1 rounded-md tracking-wider border border-brand-500/30">N/A</span>
+                        <h2 id="detail-school-name" class="mt-3 text-lg sm:text-xl font-extrabold leading-snug">Nama Sekolah</h2>
+                        <p id="detail-school-gred" class="text-xs text-brand-200 font-medium mt-1">Gred: N/A</p>
+                    </div>
+
+                    <!-- Drawer Content -->
+                    <div class="flex-1 py-6 px-6 space-y-6">
+                        <!-- Devices Block -->
+                        <div>
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Agihan Peranti Sewaan</h3>
+                            <div class="grid grid-cols-3 gap-3">
+                                <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center shadow-inner">
+                                    <span class="block text-xl font-bold text-slate-800" id="detail-pdt">0</span>
+                                    <span class="block text-[10px] text-slate-500 font-medium mt-0.5">Desktop (PDT)</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center shadow-inner">
+                                    <span class="block text-xl font-bold text-slate-800" id="detail-pdp">0</span>
+                                    <span class="block text-[10px] text-slate-500 font-medium mt-0.5">Laptop (PDP)</span>
+                                </div>
+                                <div class="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center shadow-inner">
+                                    <span class="block text-xl font-bold text-slate-800" id="detail-guru">0</span>
+                                    <span class="block text-[10px] text-slate-500 font-medium mt-0.5">Peranti Guru</span>
+                                </div>
+                            </div>
+                            <div class="mt-3 bg-brand-50/50 border border-brand-100/50 p-3 rounded-xl flex items-center justify-between text-xs text-brand-800">
+                                <span class="font-medium">Status Sewaan semasa:</span>
+                                <span id="detail-status" class="px-2.5 py-1 rounded-full font-bold">N/A</span>
+                            </div>
+                        </div>
+
+                        <!-- ICT Coordinator Info -->
+                        <div class="border-t border-slate-100 pt-5 space-y-3">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Penyelaras ICT Sekolah</h3>
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3.5">
+                                <div class="flex items-start space-x-3">
+                                    <div class="p-2 bg-brand-100 text-brand-700 rounded-lg text-xs shrink-0"><i class="fa-solid fa-user-tie"></i></div>
+                                    <div>
+                                        <span class="block text-[10px] text-slate-500 font-medium">Nama Guru Penyelaras</span>
+                                        <span id="detail-ict-name" class="font-bold text-slate-800 text-sm">Nama N/A</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3">
+                                    <div class="p-2 bg-brand-100 text-brand-700 rounded-lg text-xs shrink-0"><i class="fa-solid fa-envelope"></i></div>
+                                    <div class="break-all">
+                                        <span class="block text-[10px] text-slate-500 font-medium">Emel Rasmi</span>
+                                        <a id="detail-ict-email" href="#" class="font-semibold text-brand-600 hover:underline text-xs">Email N/A</a>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3">
+                                    <div class="p-2 bg-brand-100 text-brand-700 rounded-lg text-xs shrink-0"><i class="fa-solid fa-phone"></i></div>
+                                    <div>
+                                        <span class="block text-[10px] text-slate-500 font-medium">No. Telefon Bimbit</span>
+                                        <span id="detail-ict-phone" class="font-bold text-slate-800 text-sm">N/A</span>
+                                        <div class="flex gap-2 mt-2">
+                                            <a id="link-ict-whatsapp" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                                                <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                                            </a>
+                                            <a id="link-ict-call" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                                                <i class="fa-solid fa-phone text-[9px]"></i> Hubungi
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PTIS Coordinator Info -->
+                        <div class="border-t border-slate-100 pt-5 space-y-3">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Penyelia PTIS JPN / PPD</h3>
+                            <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 space-y-3.5">
+                                <div class="flex items-start space-x-3">
+                                    <div class="p-2 bg-indigo-100 text-indigo-700 rounded-lg text-xs shrink-0"><i class="fa-solid fa-shield"></i></div>
+                                    <div>
+                                        <span class="block text-[10px] text-slate-500 font-medium">Nama PTIS Seliaan</span>
+                                        <span id="detail-ptis-name" class="font-bold text-slate-800 text-sm">N/A</span>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3">
+                                    <div class="p-2 bg-indigo-100 text-indigo-700 rounded-lg text-xs shrink-0"><i class="fa-solid fa-envelope"></i></div>
+                                    <div class="break-all">
+                                        <span class="block text-[10px] text-slate-500 font-medium">Emel PTIS</span>
+                                        <a id="detail-ptis-email" href="#" class="font-semibold text-indigo-600 hover:underline text-xs">Email N/A</a>
+                                    </div>
+                                </div>
+                                <div class="flex items-start space-x-3">
+                                    <div class="p-2 bg-indigo-100 text-indigo-700 rounded-lg text-xs shrink-0"><i class="fa-solid fa-phone"></i></div>
+                                    <div>
+                                        <span class="block text-[10px] text-slate-500 font-medium">No. Telefon PTIS</span>
+                                        <span id="detail-ptis-phone" class="font-bold text-slate-800 text-sm">N/A</span>
+                                        <div class="flex gap-2 mt-2">
+                                            <a id="link-ptis-whatsapp" target="_blank" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                                                <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
+                                            </a>
+                                            <a id="link-ptis-call" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all">
+                                                <i class="fa-solid fa-phone text-[9px]"></i> Hubungi
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Close button at bottom for mobile -->
+                    <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 shrink-0">
+                        <button onclick="closeDetailDrawer()" class="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-xl text-xs transition-all tracking-wider uppercase">Tutup Panel Maklumat</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast Element -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-900 text-white px-5 py-3 rounded-2xl flex items-center space-x-3 shadow-xl">
+        <span id="toast-icon" class="text-emerald-400"><i class="fa-solid fa-check-circle"></i></span>
+        <span id="toast-text" class="text-xs font-semibold">Tindakan Berjaya!</span>
+    </div>
+
+    <!-- Script Block -->
+    <script>
+        // Configuration
+        let defaultDataSourceUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTGSHnGNYYn5J0uu-15gJ5v2CBajoEU3DBf_ocwdtdZFpvIJbLUUzVmwfPLnNcExVErnb1QMAXD_Arf/pub?output=csv";
+        let activeDataSourceUrl = localStorage.getItem("kuantan_peranti_csv_url") || defaultDataSourceUrl;
+
+        // Raw parsed dataset
+        let rawDataset = [];
+        let cleanDataset = [];
+        let filteredDataset = [];
+        
+        // Active Filters state
+        let filters = {
+            school: "",
+            pdt: "",
+            pdp: "",
+            guru: ""
+        };
+
+        // Pagination State
+        let pagination = {
+            currentPage: 1,
+            pageSize: 25,
+            totalPages: 1
+        };
+
+        // Table Sorting State
+        let sorting = {
+            column: "NAMA SEKOLAH",
+            ascending: true
+        };
+
+        // Dynamic Column Header Mapping (Fallback in case headers are modified)
+        let keyMapping = {
+            kod_sekolah: "KOD SEKOLAH",
+            nama_sekolah: "NAMA SEKOLAH",
+            pdt: "PDT",
+            pdp: "PDP",
+            peranti_guru: "PERANTI GURU",
+            gred: "GRED",
+            status: "STATUS",
+            ict_name: "NAMA GURU PENYELARAS ICT",
+            ict_email: "EMEL",
+            ict_phone: "NO TELEFON",
+            ptis_name: "NAMA PTIS SELIAAN",
+            ptis_phone: "NO TELEFON_1", // PapaParse duplicates resolution suffix
+            ptis_email: "EMAIL"
+        };
+
+        // Chart.js Instances
+        let chartGredInstance = null;
+        let chartStatusInstance = null;
+
+        // On window load, trigger initialization
+        window.onload = function() {
+            document.getElementById("sheets-url-input").value = activeDataSourceUrl;
+            loadDataFromSource();
+        };
+
+        function loadDataFromSource() {
+            const syncStatusText = document.getElementById("sync-status");
+            const refreshIcon = document.getElementById("refresh-icon");
+            
+            syncStatusText.textContent = "Menyambung & Memuat data...";
+            refreshIcon.classList.add("fa-spin");
+
+            Papa.parse(activeDataSourceUrl, {
+                download: true,
+                header: false, // Parse as arrays of values to handle duplicate column headers safely
+                skipEmptyLines: true,
+                complete: function(results) {
+                    try {
+                        const rows = results.data;
+                        if (rows && rows.length > 0) {
+                            rawDataset = rows;
+                            
+                            // Initialize standard mapping dropdowns for Diagnostics
+                            populateMappingDropdowns(rows[0]);
+                            
+                            // Transform arrays into object format using unique keys
+                            processRawDataset(rows);
+                            
+                            // Build dropdown values
+                            buildFilterOptions();
+                            
+                            // Render dashboard elements
+                            applyFilters();
+                            
+                            syncStatusText.textContent = "Tersambung (Live)";
+                            showToast("Sambungan Berjaya", "Data dari Google Sheets berjaya disegerakkan!", "fa-circle-check", "text-emerald-400");
+                        } else {
+                            throw new Error("CSV kosong atau format tidak sah.");
+                        }
+                    } catch (e) {
+                        console.error("Parsing error:", e);
+                        syncStatusText.textContent = "Ralat Sambungan";
+                        showToast("Ralat Sambungan", "Gagal memuat atau memproses data. Sila periksa URL sumber.", "fa-circle-exclamation", "text-rose-500");
+                    } finally {
+                        refreshIcon.classList.remove("fa-spin");
+                    }
+                },
+                error: function(err) {
+                    console.error("Fetch error:", err);
+                    syncStatusText.textContent = "Ralat Google Sheets";
+                    showToast("Ralat Memuat", "Fail tidak dapat dimuat turun. Pastikan fail ditularkan ke web.", "fa-circle-exclamation", "text-rose-500");
+                    refreshIcon.classList.remove("fa-spin");
+                    fallbackMockData();
+                }
+            });
+        }
+
+        // Fallback Mock Data in case external network fails or spreadsheet is unshared
+        function fallbackMockData() {
+            console.log("Loading high-quality mock data for testing dashboard in case of network issues...");
+            const mockRows = [
+                ["PPD", "KOD SEKOLAH", "NAMA SEKOLAH", "PDT", "PDP", "PERANTI GURU", "NAMA GURU PENYELARAS ICT", "GRED", "EMEL", "NO TELEFON", "STATUS", "NAMA PTIS SELIAAN", "NO TELEFON", "EMAIL"],
+                ["PPD KUANTAN", "CBA4001", "SK INDERA MAHKOTA", "12", "30", "15", "AHMAD BIN TAJID", "A", "cba4001@moe.edu.my", "0123456789", "Selesai (Fasa 1)", "ZULKIFLI BIN IBRAHIM", "0199991111", "zulkifli@ptis.my"],
+                ["PPD KUANTAN", "CBA4002", "SK BESERAH", "8", "20", "10", "SITI AMINAH BINTI BAKAR", "B", "cba4002@moe.edu.my", "0133456789", "Selesai (Fasa 1)", "ZULKIFLI BIN IBRAHIM", "0199991111", "zulkifli@ptis.my"],
+                ["PPD KUANTAN", "CBA4003", "SK SEMAMBU", "15", "40", "20", "LEE CHEE MENG", "A", "cba4003@moe.edu.my", "0143456789", "Selesai (Fasa 2)", "SARA ALIA BINTI AZMI", "0199992222", "sara@ptis.my"],
+                ["PPD KUANTAN", "CBA4004", "SK TOK SERA", "6", "15", "8", "RAMASAMY GOVINDAN", "B", "cba4004@moe.edu.my", "0153456789", "Selesai (Fasa 2)", "SARA ALIA BINTI AZMI", "0199992222", "sara@ptis.my"],
+                ["PPD KUANTAN", "CBA4005", "SMK JALAN ALOR AKAR", "25", "60", "30", "NORMAH BINTI ISMAIL", "A", "cba4005@moe.edu.my", "0163456789", "Dalam Proses (F1)", "ZULKIFLI BIN IBRAHIM", "0199991111", "zulkifli@ptis.my"],
+                ["PPD KUANTAN", "CBA4006", "SMK AIR PUTIH", "30", "80", "40", "TAN KAH CHUAN", "A", "cba4006@moe.edu.my", "0173456789", "Dalam Proses (F2)", "SARA ALIA BINTI AZMI", "0199992222", "sara@ptis.my"]
+            ];
+            rawDataset = mockRows;
+            populateMappingDropdowns(mockRows[0]);
+            processRawDataset(mockRows);
+            buildFilterOptions();
+            applyFilters();
+            
+            document.getElementById("sync-status").textContent = "Menggunakan Data Gantian";
+            showToast("Data Gantian Dimuatkan", "Menunjukkan demo data kerana pautan CSV tidak respons.", "fa-triangle-exclamation", "text-amber-500");
+        }
+
+        function processRawDataset(rows) {
+            const rawHeaders = rows[0];
+            
+            // Clean duplicate headers by appending a numerical index to duplicates
+            let headerCounts = {};
+            let cleanedHeaders = rawHeaders.map((header) => {
+                let clean = (header || "").trim().toUpperCase();
+                if (!clean) clean = "KOLUM_KOSONG";
+                if (headerCounts[clean]) {
+                    let index = headerCounts[clean];
+                    headerCounts[clean]++;
+                    return `${clean}_${index}`;
+                } else {
+                    headerCounts[clean] = 1;
+                    return clean;
+                }
+            });
+
+            // Map standard keys to our cleaned header labels dynamically
+            detectColumnMapping(cleanedHeaders);
+
+            cleanDataset = [];
+            for (let i = 1; i < rows.length; i++) {
+                let row = rows[i];
+                if (!row || row.length === 0 || !row[0]) continue; // Skip empty rows
+
+                let item = {};
+                cleanedHeaders.forEach((hdr, idx) => {
+                    item[hdr] = (row[idx] || "").trim();
+                });
+                cleanDataset.push(item);
+            }
+        }
+
+        // Detect correct columns automatically
+        function detectColumnMapping(headers) {
+            const matchHeader = (possibilities) => {
+                return headers.find(h => possibilities.includes(h)) || headers[0];
+            };
+
+            keyMapping.kod_sekolah = matchHeader(["KOD SEKOLAH", "KOD_SEKOLAH", "KODSEKOLAH", "KOD_SEK"]);
+            keyMapping.nama_sekolah = matchHeader(["NAMA SEKOLAH", "NAMA_SEKOLAH", "NAMA SEKOLAH_1", "NAMA"]);
+            keyMapping.pdt = matchHeader(["PDT", "PERANTI PDT", "PDT_UNIT", "PDT COUNT"]);
+            keyMapping.pdp = matchHeader(["PDP", "PERANTI PDP", "PDP_UNIT", "PDP COUNT"]);
+            keyMapping.peranti_guru = matchHeader(["PERANTI GURU", "PERANTI_GURU", "GURU", "TEACHER DEVICES"]);
+            keyMapping.gred = matchHeader(["GRED", "GRED SEKOLAH", "GRED_SEK"]);
+            keyMapping.status = matchHeader(["STATUS", "STATUS PERANTI", "STATUS_PELAKSANAAN", "STATUS SEWAAN"]);
+            keyMapping.ict_name = matchHeader(["NAMA GURU PENYELARAS ICT", "GURU PENYELARAS ICT", "GURU ICT", "PENYELARAS ICT"]);
+            
+            // Handle dual-use common column names (Email/No Telefon)
+            keyMapping.ict_email = headers.find(h => ["EMEL", "EMAIL", "EMAIL_SEKOLAH", "EMEL SEKOLAH"].includes(h)) || headers[0];
+            keyMapping.ict_phone = headers.find(h => ["NO TELEFON", "NO. TELEFON", "TELEFON", "TEL_SEK"].includes(h)) || headers[0];
+
+            keyMapping.ptis_name = matchHeader(["NAMA PTIS SELIAAN", "PTIS SELIAAN", "NAMA PTIS", "PENYELIA PTIS"]);
+            
+            // Second occurrences or explicit suffixes
+            keyMapping.ptis_phone = headers.find(h => ["NO TELEFON_1", "NO. TELEFON_1", "TELEFON_1", "NO TELEFON PTIS", "TEL PTIS"].includes(h)) || keyMapping.ict_phone;
+            keyMapping.ptis_email = headers.find(h => ["EMAIL_1", "EMEL_1", "EMAIL PTIS", "EMEL PTIS", "EMAIL"].includes(h)) || keyMapping.ict_email;
+
+            // Reflect in Diagnostic Selector views
+            document.getElementById("map-kod").value = keyMapping.kod_sekolah;
+            document.getElementById("map-nama").value = keyMapping.nama_sekolah;
+            document.getElementById("map-pdt").value = keyMapping.pdt;
+            document.getElementById("map-pdp").value = keyMapping.pdp;
+            document.getElementById("map-guru").value = keyMapping.peranti_guru;
+            document.getElementById("map-status").value = keyMapping.status;
+        }
+
+        function buildFilterOptions() {
+            const selectSchool = document.getElementById("filter-school");
+            const selectPdt = document.getElementById("filter-pdt");
+            const selectPdp = document.getElementById("filter-pdp");
+            const selectGuru = document.getElementById("filter-guru");
+
+            // Store previous selected values
+            const oldSchool = selectSchool.value;
+            const oldPdt = selectPdt.value;
+            const oldPdp = selectPdp.value;
+            const oldGuru = selectGuru.value;
+
+            // Extract unique values
+            let schools = new Set();
+            let pdts = new Set();
+            let pdps = new Set();
+            let gurus = new Set();
+
+            cleanDataset.forEach(row => {
+                if (row[keyMapping.nama_sekolah]) schools.add(row[keyMapping.nama_sekolah]);
+                if (row[keyMapping.pdt]) pdts.add(row[keyMapping.pdt]);
+                if (row[keyMapping.pdp]) pdps.add(row[keyMapping.pdp]);
+                if (row[keyMapping.peranti_guru]) gurus.add(row[keyMapping.peranti_guru]);
+            });
+
+            // Re-populate dropdown helper
+            const populateDropdown = (elem, values, selectedVal, defaultLabel) => {
+                const sorted = Array.from(values).sort((a, b) => {
+                    return isNaN(a) || isNaN(b) ? a.localeCompare(b) : Number(a) - Number(b);
+                });
+                elem.innerHTML = `<option value="">${defaultLabel}</option>`;
+                sorted.forEach(val => {
+                    elem.innerHTML += `<option value="${val}">${val}</option>`;
+                });
+                elem.value = selectedVal;
+            };
+
+            populateDropdown(selectSchool, schools, oldSchool, "Semua Sekolah");
+            populateDropdown(selectPdt, pdts, oldPdt, "Semua Nilai PDT");
+            populateDropdown(selectPdp, pdps, oldPdp, "Semua Nilai PDP");
+            populateDropdown(selectGuru, gurus, oldGuru, "Semua Nilai Guru");
+        }
+
+        function applyFilters() {
+            filters.school = document.getElementById("filter-school").value;
+            filters.pdt = document.getElementById("filter-pdt").value;
+            filters.pdp = document.getElementById("filter-pdp").value;
+            filters.guru = document.getElementById("filter-guru").value;
+
+            filteredDataset = cleanDataset.filter(row => {
+                if (filters.school && row[keyMapping.nama_sekolah] !== filters.school) return false;
+                if (filters.pdt && row[keyMapping.pdt] !== filters.pdt) return false;
+                if (filters.pdp && row[keyMapping.pdp] !== filters.pdp) return false;
+                if (filters.guru && row[keyMapping.peranti_guru] !== filters.guru) return false;
+                return true;
+            });
+
+            // Reset to page 1 upon filtering
+            pagination.currentPage = 1;
+
+            calculateMetrics();
+            updateCharts();
+            renderTable();
+        }
+
+        function resetFilters() {
+            document.getElementById("filter-school").value = "";
+            document.getElementById("filter-pdt").value = "";
+            document.getElementById("filter-pdp").value = "";
+            document.getElementById("filter-guru").value = "";
+            applyFilters();
+            showToast("Penapis Dikosongkan", "Semua penapis berjaya diset semula.", "fa-filter-circle-xmark", "text-brand-500");
+        }
+
+        function calculateMetrics() {
+            let totalSchools = filteredDataset.length;
+            let totalPdt = 0;
+            let totalPdp = 0;
+            let totalGuru = 0;
+
+            // Scorecard F1 & F2 states
+            let totalF1 = 0;
+            let totalF2 = 0;
+
+            // Auto-detect Fasa / F1 & F2 categorization from 'STATUS' or search for 'F1'/'F2' values in sheet
+            let hasF1F2Columns = false;
+            let f1ColumnName = null;
+            let f2ColumnName = null;
+
+            // Check if there are explicit F1 and F2 headers in raw list
+            const rawHeaders = rawDataset[0] || [];
+            rawHeaders.forEach(hdr => {
+                let clean = hdr.trim().toUpperCase();
+                if (clean === "F1" || clean === "FASA 1" || clean === "FASA_1") {
+                    hasF1F2Columns = true;
+                    f1ColumnName = hdr;
+                }
+                if (clean === "F2" || clean === "FASA 2" || clean === "FASA_2") {
+                    hasF1F2Columns = true;
+                    f2ColumnName = hdr;
+                }
+            });
+
+            filteredDataset.forEach(row => {
+                totalPdt += Number(row[keyMapping.pdt]) || 0;
+                totalPdp += Number(row[keyMapping.pdp]) || 0;
+                totalGuru += Number(row[keyMapping.peranti_guru]) || 0;
+
+                let statusVal = (row[keyMapping.status] || "").toUpperCase();
+
+                if (hasF1F2Columns) {
+                    // Logic A: Use values from explicit columns if they exist
+                    if (f1ColumnName) {
+                        totalF1 += Number(row[f1ColumnName]) || (row[f1ColumnName] ? 1 : 0);
+                    }
+                    if (f2ColumnName) {
+                        totalF2 += Number(row[f2ColumnName]) || (row[f2ColumnName] ? 1 : 0);
+                    }
+                } else {
+                    // Logic B: Deduce based on typical Malaysian deployment values in STATUS column
+                    // E.g., Status containing "FASA 1", "F1", "SELESAI 1", "SELESAI (FASA 1)", "PHASE 1"
+                    if (statusVal.includes("FASA 1") || statusVal.includes("F1") || statusVal.includes("FASA_1") || statusVal === "F1") {
+                        // Count as matching schools
+                        totalF1++;
+                    }
+                    if (statusVal.includes("FASA 2") || statusVal.includes("F2") || statusVal.includes("FASA_2") || statusVal === "F2") {
+                        totalF2++;
+                    }
+                }
+            });
+
+            // If calculations yielded 0 (i.e. status is different, or not labeled as Fasa 1/FASA 2),
+            // let's count PDT as F1 and PDP as F2 for fallback scorecard info to provide helpful data.
+            let f1Desc = "";
+            let f2Desc = "";
+            
+            if (hasF1F2Columns) {
+                f1Desc = `Jumlah unit dari kolum ${f1ColumnName}`;
+                f2Desc = `Jumlah unit dari kolum ${f2ColumnName}`;
+            } else {
+                if (totalF1 === 0 && totalF2 === 0) {
+                    // Let's fallback to sum of schools where status matches F1/F2 keywords or display total completed
+                    totalF1 = filteredDataset.filter(r => (r[keyMapping.status] || "").toLowerCase().includes("selesai")).length;
+                    totalF2 = filteredDataset.filter(r => (r[keyMapping.status] || "").toLowerCase().includes("proses")).length;
+                    f1Desc = "Status Selesai";
+                    f2Desc = "Status Dalam Proses";
+                } else {
+                    f1Desc = "Sekolah Fasa 1 (F1)";
+                    f2Desc = "Sekolah Fasa 2 (F2)";
+                }
+            }
+
+            // Animate scorecard numbers
+            animateValue("scorecard-schools", totalSchools);
+            animateValue("scorecard-pdt", totalPdt);
+            animateValue("scorecard-pdp", totalPdp);
+            animateValue("scorecard-guru", totalGuru);
+            animateValue("scorecard-f1", totalF1);
+            animateValue("scorecard-f2", totalF2);
+
+            document.getElementById("scorecard-f1-desc").textContent = f1Desc;
+            document.getElementById("scorecard-f2-desc").textContent = f2Desc;
+            document.getElementById("table-row-count").textContent = `${totalSchools} Rekod Ditemui`;
+        }
+
+        // Animate counting numbers smoothly
+        function animateValue(id, endValue) {
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            let startValue = parseInt(obj.textContent) || 0;
+            if (startValue === endValue) return;
+            
+            let duration = 500; // ms
+            let startTime = null;
+
+            function step(timestamp) {
+                if (!startTime) startTime = timestamp;
+                const progress = Math.min((timestamp - startTime) / duration, 1);
+                const currentValue = Math.floor(progress * (endValue - startValue) + startValue);
+                obj.textContent = currentValue.toLocaleString("ms-MY");
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.textContent = endValue.toLocaleString("ms-MY");
+                }
+            }
+            window.requestAnimationFrame(step);
+        }
+
+        function updateCharts() {
+            // Process Chart 1 Data: Stacking device count by Gred
+            let gredLabels = [];
+            let pdtData = {};
+            let pdpData = {};
+            let guruData = {};
+
+            filteredDataset.forEach(row => {
+                let gred = row[keyMapping.gred] || "TIADA GRED";
+                gred = gred.trim().toUpperCase();
+                
+                if (!pdtData[gred]) {
+                    pdtData[gred] = 0;
+                    pdpData[gred] = 0;
+                    guruData[gred] = 0;
+                }
+                
+                pdtData[gred] += Number(row[keyMapping.pdt]) || 0;
+                pdpData[gred] += Number(row[keyMapping.pdp]) || 0;
+                guruData[gred] += Number(row[keyMapping.peranti_guru]) || 0;
+            });
+
+            gredLabels = Object.keys(pdtData).sort();
+
+            const chart1_pdt = gredLabels.map(g => pdtData[g]);
+            const chart1_pdp = gredLabels.map(g => pdpData[g]);
+            const chart1_guru = gredLabels.map(g => guruData[g]);
+
+            // Render Chart 1: Gred Sekolah
+            const ctxGred = document.getElementById('chart-gred').getContext('2d');
+            if (chartGredInstance) chartGredInstance.destroy();
+            
+            chartGredInstance = new Chart(ctxGred, {
+                type: 'bar',
+                data: {
+                    labels: gredLabels,
+                    datasets: [
+                        {
+                            label: 'Desktop (PDT)',
+                            data: chart1_pdt,
+                            backgroundColor: '#0c91eb',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Laptop (PDP)',
+                            data: chart1_pdp,
+                            backgroundColor: '#14b8a6',
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Peranti Guru',
+                            data: chart1_guru,
+                            backgroundColor: '#6366f1',
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        x: { stacked: false, grid: { display: false }, ticks: { font: { family: 'Inter', size: 10 } } },
+                        y: { stacked: false, border: { dash: [4, 4] }, ticks: { font: { family: 'Inter', size: 10 } } }
+                    }
+                }
+            });
+
+            // Process Chart 2 Data: Distribution by STATUS
+            let statusDistribution = {};
+            filteredDataset.forEach(row => {
+                let statusVal = row[keyMapping.status] || "TIADA STATUS";
+                statusVal = statusVal.trim();
+                statusDistribution[statusVal] = (statusDistribution[statusVal] || 0) + 1;
+            });
+
+            const statusLabels = Object.keys(statusDistribution);
+            const statusValues = Object.values(statusDistribution);
+
+            // Dynamic color generation matching the branding theme
+            const backgroundColors = statusLabels.map((lbl, idx) => {
+                const colors = ['#0f172a', '#0c91eb', '#14b8a6', '#f59e0b', '#f43f5e', '#a855f7', '#64748b'];
+                return colors[idx % colors.length];
+            });
+
+            const ctxStatus = document.getElementById('chart-status').getContext('2d');
+            if (chartStatusInstance) chartStatusInstance.destroy();
+
+            chartStatusInstance = new Chart(ctxStatus, {
+                type: 'doughnut',
+                data: {
+                    labels: statusLabels,
+                    datasets: [{
+                        data: statusValues,
+                        backgroundColor: backgroundColors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            position: 'bottom', 
+                            labels: { 
+                                boxWidth: 10, 
+                                font: { family: 'Inter', size: 10 } 
+                            } 
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function sortData(column) {
+            if (sorting.column === column) {
+                sorting.ascending = !sorting.ascending;
+            } else {
+                sorting.column = column;
+                sorting.ascending = true;
+            }
+            
+            // Apply visual sorting state
+            const columns = {
+                "KOD SEKOLAH": "sort-icon-KOD",
+                "NAMA SEKOLAH": "sort-icon-NAMA",
+                "PDT": "sort-icon-PDT",
+                "PDP": "sort-icon-PDP",
+                "PERANTI GURU": "sort-icon-GURU",
+                "STATUS": "sort-icon-STATUS"
+            };
+
+            // Reset all icons to default
+            Object.values(columns).forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) elem.innerHTML = `<i class="fa-solid fa-sort"></i>`;
+            });
+
+            const activeIconId = columns[column];
+            if (activeIconId) {
+                const icon = sorting.ascending ? `<i class="fa-solid fa-caret-up text-brand-600"></i>` : `<i class="fa-solid fa-caret-down text-brand-600"></i>`;
+                document.getElementById(activeIconId).innerHTML = icon;
+            }
+
+            renderTable();
+        }
+
+        function handleSearch() {
+            // Re-render table dynamically as the user types
+            pagination.currentPage = 1;
+            renderTable();
+        }
+
+        function renderTable() {
+            const tableBody = document.getElementById("table-body");
+            const searchVal = document.getElementById("table-search").value.toLowerCase();
+
+            // 1. Apply search queries (across multiple keys)
+            let tableData = filteredDataset.filter(row => {
+                const kod = (row[keyMapping.kod_sekolah] || "").toLowerCase();
+                const nama = (row[keyMapping.nama_sekolah] || "").toLowerCase();
+                const status = (row[keyMapping.status] || "").toLowerCase();
+                const supervisor = (row[keyMapping.ptis_name] || "").toLowerCase();
+                const coordinator = (row[keyMapping.ict_name] || "").toLowerCase();
+                
+                return kod.includes(searchVal) || 
+                       nama.includes(searchVal) || 
+                       status.includes(searchVal) || 
+                       supervisor.includes(searchVal) || 
+                       coordinator.includes(searchVal);
+            });
+
+            // Update record count matching search queries
+            document.getElementById("table-row-count").textContent = `${tableData.length} Rekod Padanan`;
+
+            // 2. Apply sorting
+            tableData.sort((a, b) => {
+                let valA, valB;
+                
+                if (sorting.column === "KOD SEKOLAH") {
+                    valA = a[keyMapping.kod_sekolah] || "";
+                    valB = b[keyMapping.kod_sekolah] || "";
+                } else if (sorting.column === "NAMA SEKOLAH") {
+                    valA = a[keyMapping.nama_sekolah] || "";
+                    valB = b[keyMapping.nama_sekolah] || "";
+                } else if (sorting.column === "STATUS") {
+                    valA = a[keyMapping.status] || "";
+                    valB = b[keyMapping.status] || "";
+                } else if (sorting.column === "PDT") {
+                    valA = Number(a[keyMapping.pdt]) || 0;
+                    valB = Number(b[keyMapping.pdt]) || 0;
+                } else if (sorting.column === "PDP") {
+                    valA = Number(a[keyMapping.pdp]) || 0;
+                    valB = Number(b[keyMapping.pdp]) || 0;
+                } else if (sorting.column === "PERANTI GURU") {
+                    valA = Number(a[keyMapping.peranti_guru]) || 0;
+                    valB = Number(b[keyMapping.peranti_guru]) || 0;
+                }
+
+                if (typeof valA === "number" && typeof valB === "number") {
+                    return sorting.ascending ? valA - valB : valB - valA;
+                } else {
+                    return sorting.ascending ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                }
+            });
+
+            // 3. Paginate
+            pagination.totalPages = Math.ceil(tableData.length / pagination.pageSize) || 1;
+            if (pagination.currentPage > pagination.totalPages) {
+                pagination.currentPage = pagination.totalPages;
+            }
+
+            const startIdx = (pagination.currentPage - 1) * pagination.pageSize;
+            const paginatedData = tableData.slice(startIdx, startIdx + pagination.pageSize);
+
+            // 4. Render Rows
+            if (paginatedData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-12 text-center text-slate-400">
+                            <i class="fa-solid fa-folder-open text-3xl mb-2 block"></i>
+                            Tiada rekod sekolah padanan ditemui.
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = "";
+                paginatedData.forEach(row => {
+                    const kod = row[keyMapping.kod_sekolah] || "N/A";
+                    const nama = row[keyMapping.nama_sekolah] || "N/A";
+                    const pdt = row[keyMapping.pdt] || "0";
+                    const pdp = row[keyMapping.pdp] || "0";
+                    const guru = row[keyMapping.peranti_guru] || "0";
+                    const status = row[keyMapping.status] || "N/A";
+
+                    // Determine modern pill styling based on Status keywords
+                    let statusClass = "bg-slate-100 text-slate-800 border-slate-200";
+                    const normStatus = status.toLowerCase();
+                    if (normStatus.includes("selesai") || normStatus.includes("aktif") || normStatus.includes("complete")) {
+                        statusClass = "bg-emerald-50 text-emerald-800 border-emerald-200/60";
+                    } else if (normStatus.includes("proses") || normStatus.includes("fasa 1") || normStatus.includes("f1")) {
+                        statusClass = "bg-amber-50 text-amber-800 border-amber-200/60";
+                    } else if (normStatus.includes("fasa 2") || normStatus.includes("f2") || normStatus.includes("hantar")) {
+                        statusClass = "bg-sky-50 text-sky-800 border-sky-200/60";
+                    }
+
+                    tableBody.innerHTML += `
+                        <tr class="hover:bg-slate-50/70 transition-all border-b border-slate-100 group">
+                            <td class="py-3 px-6 font-semibold text-brand-700 text-xs">${kod}</td>
+                            <td class="py-3 px-6">
+                                <span class="font-bold text-slate-800 block">${nama}</span>
+                                <span class="text-[10px] text-slate-400 font-medium">Gred: ${row[keyMapping.gred] || "N/A"} • PTIS: ${row[keyMapping.ptis_name] || "Tiada"}</span>
+                            </td>
+                            <td class="py-3 px-4 text-center font-semibold text-slate-700">${pdt}</td>
+                            <td class="py-3 px-4 text-center font-semibold text-slate-700">${pdp}</td>
+                            <td class="py-3 px-4 text-center font-semibold text-slate-700">${guru}</td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="inline-block border text-[10px] font-bold px-2.5 py-1 rounded-full ${statusClass}">${status}</span>
+                            </td>
+                            <td class="py-3 px-6 text-center">
+                                <button onclick="openDetailDrawer('${kod}')" class="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200/50 hover:border-brand-200 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1 mx-auto active:scale-95">
+                                    <i class="fa-solid fa-circle-info"></i> Maklumat
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            }
+
+            renderPaginationControls();
+        }
+
+        function changePageSize() {
+            pagination.pageSize = parseInt(document.getElementById("table-page-size").value);
+            pagination.currentPage = 1;
+            renderTable();
+        }
+
+        function goToPage(p) {
+            if (p < 1 || p > pagination.totalPages) return;
+            pagination.currentPage = p;
+            renderTable();
+        }
+
+        function renderPaginationControls() {
+            const container = document.getElementById("table-pagination");
+            if (pagination.totalPages <= 1) {
+                container.innerHTML = "";
+                return;
+            }
+
+            let html = `
+                <button onclick="goToPage(${pagination.currentPage - 1})" class="p-2 border border-slate-300 rounded-xl bg-white hover:bg-slate-50 transition-all text-xs font-bold ${pagination.currentPage === 1 ? 'opacity-50 pointer-events-none' : ''}">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            `;
+
+            // Simple Pagination windowing
+            let start = Math.max(1, pagination.currentPage - 1);
+            let end = Math.min(pagination.totalPages, pagination.currentPage + 1);
+
+            if (start > 1) {
+                html += `<button onclick="goToPage(1)" class="w-8 h-8 rounded-xl text-xs font-bold transition-all ${pagination.currentPage === 1 ? 'bg-brand-600 text-white shadow-md' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}">1</button>`;
+                if (start > 2) html += `<span class="text-slate-400 text-xs">...</span>`;
+            }
+
+            for (let i = start; i <= end; i++) {
+                html += `
+                    <button onclick="goToPage(${i})" class="w-8 h-8 rounded-xl text-xs font-bold transition-all ${pagination.currentPage === i ? 'bg-brand-600 text-white shadow-md' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}">${i}</button>
+                `;
+            }
+
+            if (end < pagination.totalPages) {
+                if (end < pagination.totalPages - 1) html += `<span class="text-slate-400 text-xs">...</span>`;
+                html += `<button onclick="goToPage(${pagination.totalPages})" class="w-8 h-8 rounded-xl text-xs font-bold transition-all ${pagination.currentPage === pagination.totalPages ? 'bg-brand-600 text-white shadow-md' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'}">${pagination.totalPages}</button>`;
+            }
+
+            html += `
+                <button onclick="goToPage(${pagination.currentPage + 1})" class="p-2 border border-slate-300 rounded-xl bg-white hover:bg-slate-50 transition-all text-xs font-bold ${pagination.currentPage === pagination.totalPages ? 'opacity-50 pointer-events-none' : ''}">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function openDetailDrawer(kodSekolah) {
+            const item = cleanDataset.find(r => r[keyMapping.kod_sekolah] === kodSekolah);
+            if (!item) return;
+
+            document.getElementById("detail-kod-badge").textContent = item[keyMapping.kod_sekolah] || "N/A";
+            document.getElementById("detail-school-name").textContent = item[keyMapping.nama_sekolah] || "N/A";
+            document.getElementById("detail-school-gred").textContent = `Gred: ${item[keyMapping.gred] || "N/A"} • Kategori Pentadbiran`;
+            
+            document.getElementById("detail-pdt").textContent = item[keyMapping.pdt] || "0";
+            document.getElementById("detail-pdp").textContent = item[keyMapping.pdp] || "0";
+            document.getElementById("detail-guru").textContent = item[keyMapping.peranti_guru] || "0";
+            
+            // Status Styling
+            const statusBox = document.getElementById("detail-status");
+            const rawStatus = item[keyMapping.status] || "N/A";
+            statusBox.textContent = rawStatus;
+            
+            // Resets classes
+            statusBox.className = "px-2.5 py-1 rounded-full font-bold";
+            const normStatus = rawStatus.toLowerCase();
+            if (normStatus.includes("selesai") || normStatus.includes("aktif")) {
+                statusBox.classList.add("bg-emerald-100", "text-emerald-800");
+            } else if (normStatus.includes("proses") || normStatus.includes("fasa 1")) {
+                statusBox.classList.add("bg-amber-100", "text-amber-800");
+            } else {
+                statusBox.classList.add("bg-indigo-100", "text-indigo-800");
+            }
+
+            // ICT Coordinator Details
+            document.getElementById("detail-ict-name").textContent = item[keyMapping.ict_name] || "Maklumat Penyelaras Tidak Diisi";
+            const emailIct = item[keyMapping.ict_email] || "";
+            const emailIctLink = document.getElementById("detail-ict-email");
+            if (emailIct) {
+                emailIctLink.textContent = emailIct;
+                emailIctLink.href = `mailto:${emailIct}`;
+            } else {
+                emailIctLink.textContent = "Tiada Emel";
+                emailIctLink.removeAttribute("href");
+            }
+
+            const phoneIct = item[keyMapping.ict_phone] || "";
+            document.getElementById("detail-ict-phone").textContent = phoneIct || "Tiada No. Telefon";
+            
+            // Phone Links
+            const linkIctWhatsapp = document.getElementById("link-ict-whatsapp");
+            const linkIctCall = document.getElementById("link-ict-call");
+            if (phoneIct) {
+                // Clean phone number for Malaysian WA formatting (typically starts with +60 or 60 or 0)
+                let cleanPhone = phoneIct.replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) cleanPhone = '60' + cleanPhone.slice(1);
+                linkIctWhatsapp.href = `https://wa.me/${cleanPhone}`;
+                linkIctCall.href = `tel:${phoneIct}`;
+                linkIctWhatsapp.style.display = "inline-flex";
+                linkIctCall.style.display = "inline-flex";
+            } else {
+                linkIctWhatsapp.style.display = "none";
+                linkIctCall.style.display = "none";
+            }
+
+            // PTIS Supervisor Details
+            document.getElementById("detail-ptis-name").textContent = item[keyMapping.ptis_name] || "Maklumat PTIS Tiada";
+            
+            const emailPtis = item[keyMapping.ptis_email] || "";
+            const emailPtisLink = document.getElementById("detail-ptis-email");
+            if (emailPtis) {
+                emailPtisLink.textContent = emailPtis;
+                emailPtisLink.href = `mailto:${emailPtis}`;
+            } else {
+                emailPtisLink.textContent = "Tiada Emel";
+                emailPtisLink.removeAttribute("href");
+            }
+
+            const phonePtis = item[keyMapping.ptis_phone] || "";
+            document.getElementById("detail-ptis-phone").textContent = phonePtis || "Tiada No. Telefon PTIS";
+            
+            const linkPtisWhatsapp = document.getElementById("link-ptis-whatsapp");
+            const linkPtisCall = document.getElementById("link-ptis-call");
+            if (phonePtis) {
+                let cleanPhonePtis = phonePtis.replace(/[^0-9]/g, '');
+                if (cleanPhonePtis.startsWith('0')) cleanPhonePtis = '60' + cleanPhonePtis.slice(1);
+                linkPtisWhatsapp.href = `https://wa.me/${cleanPhonePtis}`;
+                linkPtisCall.href = `tel:${phonePtis}`;
+                linkPtisWhatsapp.style.display = "inline-flex";
+                linkPtisCall.style.display = "inline-flex";
+            } else {
+                linkPtisWhatsapp.style.display = "none";
+                linkPtisCall.style.display = "none";
+            }
+
+            // Show drawer with transitions
+            const drawer = document.getElementById("school-detail-drawer");
+            const panel = document.getElementById("drawer-panel");
+            
+            drawer.classList.remove("hidden");
+            setTimeout(() => {
+                panel.classList.remove("translate-x-full");
+            }, 50);
+        }
+
+        function closeDetailDrawer() {
+            const drawer = document.getElementById("school-detail-drawer");
+            const panel = document.getElementById("drawer-panel");
+            
+            panel.classList.add("translate-x-full");
+            setTimeout(() => {
+                drawer.classList.add("hidden");
+            }, 300);
+        }
+
+        function exportCSV() {
+            if (filteredDataset.length === 0) {
+                showToast("Eksport Gagal", "Tiada data untuk dieksport.", "fa-circle-exclamation", "text-rose-500");
+                return;
+            }
+
+            // Create CSV Content
+            let csvRows = [];
+            
+            // Build unique clean header keys matching active column layout
+            const headers = Object.keys(keyMapping).map(key => keyMapping[key]);
+            csvRows.push(headers.join(","));
+
+            filteredDataset.forEach(row => {
+                const values = Object.keys(keyMapping).map(key => {
+                    const cellVal = row[keyMapping[key]] || "";
+                    // Escape commas and quotes
+                    const escaped = ('' + cellVal).replace(/"/g, '""');
+                    return `"${escaped}"`;
+                });
+                csvRows.push(values.join(","));
+            });
+
+            const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Data_Peranti_Sewaan_Kuantan_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast("Eksport Berjaya", "Data sewaan sekolah berjaya dimuat turun!", "fa-circle-check", "text-emerald-400");
+        }
+
+        function reloadData() {
+            loadDataFromSource();
+        }
+
+        // Configuration Panel display
+        function toggleUrlConfig() {
+            const panel = document.getElementById("url-config-panel");
+            panel.classList.toggle("hidden");
+        }
+
+        function updateDataSourceUrl() {
+            const inputVal = document.getElementById("sheets-url-input").value.trim();
+            if (inputVal) {
+                activeDataSourceUrl = inputVal;
+                localStorage.setItem("kuantan_peranti_csv_url", activeDataSourceUrl);
+                toggleUrlConfig();
+                loadDataFromSource();
+            } else {
+                showToast("Pautan Tidak Sah", "Sila masukkan URL CSV Google Sheets yang sah.", "fa-circle-exclamation", "text-rose-500");
+            }
+        }
+
+        // Diagnostics Panel display
+        function toggleDiagnostics() {
+            const panel = document.getElementById("diagnostics-content");
+            const chevron = document.getElementById("diag-chevron");
+            panel.classList.toggle("hidden");
+            chevron.classList.toggle("rotate-180");
+        }
+
+        function populateMappingDropdowns(headers) {
+            const dropdowns = ["map-kod", "map-nama", "map-pdt", "map-pdp", "map-guru", "map-status"];
+            
+            // Build safe header identifiers
+            let headerCounts = {};
+            let uniqueHdrs = headers.map(h => {
+                let clean = (h || "").trim().toUpperCase();
+                if (!clean) clean = "KOLUM_KOSONG";
+                if (headerCounts[clean]) {
+                    let index = headerCounts[clean];
+                    headerCounts[clean]++;
+                    return `${clean}_${index}`;
+                } else {
+                    headerCounts[clean] = 1;
+                    return clean;
+                }
+            });
+
+            dropdowns.forEach(id => {
+                const elem = document.getElementById(id);
+                elem.innerHTML = "";
+                uniqueHdrs.forEach(hdr => {
+                    elem.innerHTML += `<option value="${hdr}">${hdr}</option>`;
+                });
+            });
+        }
+
+        function applyManualMapping() {
+            keyMapping.kod_sekolah = document.getElementById("map-kod").value;
+            keyMapping.nama_sekolah = document.getElementById("map-nama").value;
+            keyMapping.pdt = document.getElementById("map-pdt").value;
+            keyMapping.pdp = document.getElementById("map-pdp").value;
+            keyMapping.peranti_guru = document.getElementById("map-guru").value;
+            keyMapping.status = document.getElementById("map-status").value;
+
+            // Save overrides and recalculate metrics
+            processRawDataset(rawDataset);
+            buildFilterOptions();
+            applyFilters();
+            
+            showToast("Pemetaan Dikemaskini", "Data dashboard dikira semula berdasarkan pemetaan kolum baru.", "fa-circle-check", "text-emerald-400");
+            toggleDiagnostics();
+        }
+
+        // Notification Helper
+        function showToast(title, text, icon = "fa-circle-check", iconColorClass = "text-emerald-400") {
+            const toast = document.getElementById("toast");
+            const toastIcon = document.getElementById("toast-icon");
+            const toastText = document.getElementById("toast-text");
+
+            toastIcon.className = `${iconColorClass} text-base`;
+            toastIcon.innerHTML = `<i class="fa-solid ${icon}"></i>`;
+            toastText.innerHTML = `<strong class="block text-slate-100">${title}</strong><span class="text-slate-400">${text}</span>`;
+            
+            toast.classList.remove("translate-y-20", "opacity-0");
+            toast.classList.add("translate-y-0", "opacity-100");
+
+            setTimeout(() => {
+                toast.classList.add("translate-y-20", "opacity-0");
+                toast.classList.remove("translate-y-0", "opacity-100");
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
